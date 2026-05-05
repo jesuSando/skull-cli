@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
+
 import time
 import threading
-import os
 import argparse
 import random
+import os
+import sys
+
+# =====================================
+# SKULL CLI
+# =====================================
 
 stop = False
 
+# -------------------------------------
+# FRAMES
+# -------------------------------------
 frames =[
   """
               _.,,,._
@@ -150,65 +159,260 @@ frames =[
 
 ]
 
-colors = {
-  "red": "\033[31m",
-  "green": "\033[32m",
-  "blue": "\033[34m",
-  "cyan": "\033[36m",
-  "yellow": "\033[33m",
-  "white": "\033[37m",
-  "reset": "\033[0m"
+
+# -------------------------------------
+# COLORES ANSI
+# -------------------------------------
+COLORS = {
+    "red": "\033[31m",
+    "green": "\033[32m",
+    "blue": "\033[34m",
+    "purple": "\033[35m",
+    "cyan": "\033[36m",
+    "yellow": "\033[33m",
+    "white": "\033[37m",
+
+    "bright_red": "\033[91m",
+    "bright_green": "\033[92m",
+    "bright_blue": "\033[94m",
+    "bright_purple": "\033[95m",
+    "bright_cyan": "\033[96m",
+
+    "reset": "\033[0m"
 }
 
-def clear_screen():
-  print("\033[H\033[J", end="")
+RAINBOW = [
+    "red",
+    "yellow",
+    "green",
+    "cyan",
+    "blue",
+    "purple"
+]
 
-def animate(speed, color):
-    global stop
+# -------------------------------------
+# UTILIDADES
+# -------------------------------------
+def clear():
+    print("\033[H\033[J", end="")
 
-    threading.Thread(target=stop_animation, daemon=True).start()
+def colorize(text, color):
+    return COLORS.get(color, COLORS["white"]) + text + COLORS["reset"]
 
-    while not stop:
-        for frame in frames:
-            if stop:
-                clear_screen()
-                return
+def beep():
+    print("\a", end="")
 
-            clear_screen()
-            print(colors[color] + frame + colors["reset"])
-            time.sleep(speed)
-  
+# -------------------------------------
+# STOP CON ENTER
+# -------------------------------------
 def stop_animation():
     global stop
     input()
     stop = True
-    
-def main():
-    parser = argparse.ArgumentParser(
+
+# -------------------------------------
+# MODOS VISUALES
+# -------------------------------------
+def rainbow_frame(frame, index):
+    color = RAINBOW[index % len(RAINBOW)]
+    return colorize(frame, color)
+
+def glitch_frame(frame):
+    chars = ["@", "#", "%", "&", "$"]
+    lines = frame.splitlines()
+
+    new_lines = []
+
+    for line in lines:
+        if random.randint(1, 6) == 1:
+            line = "".join(
+                random.choice(chars) if c != " " else " "
+                for c in line
+            )
+        new_lines.append(line)
+
+    return colorize("\n".join(new_lines), "bright_red")
+
+def matrix_frame(frame):
+    return colorize(frame, "bright_green")
+
+def blood_frame(frame):
+    return colorize(frame, "red")
+
+def fire_frame(frame):
+    colors = ["yellow", "bright_red", "red"]
+    return colorize(frame, random.choice(colors))
+
+def ice_frame(frame):
+    return colorize(frame, "bright_cyan")
+
+def ghost_frame(frame):
+    return colorize(frame, "white")
+
+def neon_frame(frame):
+    return colorize(frame, "bright_purple")
+
+# -------------------------------------
+# FRAME RENDER
+# -------------------------------------
+def render(frame, args, index):
+    if args.rainbow:
+        return rainbow_frame(frame, index)
+
+    if args.glitch:
+        return glitch_frame(frame)
+
+    if args.matrix:
+        return matrix_frame(frame)
+
+    if args.blood:
+        return blood_frame(frame)
+
+    if args.fire:
+        return fire_frame(frame)
+
+    if args.ice:
+        return ice_frame(frame)
+
+    if args.ghost:
+        return ghost_frame(frame)
+
+    if args.neon:
+        return neon_frame(frame)
+
+    if args.random:
+        color = random.choice(
+            ["red", "green", "blue", "purple", "cyan", "yellow"]
+        )
+        return colorize(frame, color)
+
+    # Colores manuales
+    if args.g:
+        return colorize(frame, "green")
+
+    if args.r:
+        return colorize(frame, "red")
+
+    if args.b:
+        return colorize(frame, "blue")
+
+    if args.p:
+        return colorize(frame, "purple")
+
+    if args.c:
+        return colorize(frame, "cyan")
+
+    if args.y:
+        return colorize(frame, "yellow")
+
+    return colorize(frame, "white")
+
+# -------------------------------------
+# ANIMACIÓN
+# -------------------------------------
+def animate(args):
+    global stop
+
+    threading.Thread(
+        target=stop_animation,
+        daemon=True
+    ).start()
+
+    speed = args.speed
+
+    if args.x:
+        speed = 0.03
+
+    if args.slow:
+        speed = 0.40
+
+    loops = 999999999 if args.infinite else args.loop
+
+    if args.once:
+        loops = 1
+
+    cycle = 0
+
+    while not stop and cycle < loops:
+        for i, frame in enumerate(frames):
+
+            if stop:
+                clear()
+                return
+
+            clear()
+
+            final_frame = render(frame, args, i)
+
+            print(final_frame)
+
+            if args.beep:
+                beep()
+
+            time.sleep(speed)
+
+        cycle += 1
+
+# -------------------------------------
+# CLI
+# -------------------------------------
+def parser():
+    p = argparse.ArgumentParser(
+        prog="skull",
         description="Animated ASCII Skull"
     )
 
-    parser.add_argument("-g", "--green", action="store_true")
-    parser.add_argument("-r", "--red", action="store_true")
-    parser.add_argument("-b", "--blue", action="store_true")
-    parser.add_argument("-s", "--speed", type=float, default=0.18)
-    parser.add_argument("--random", action="store_true")
+    # colores
+    p.add_argument("-g", action="store_true")
+    p.add_argument("-r", action="store_true")
+    p.add_argument("-b", action="store_true")
+    p.add_argument("-p", action="store_true")
+    p.add_argument("-c", action="store_true")
+    p.add_argument("-y", action="store_true")
 
-    args = parser.parse_args()
+    # velocidad
+    p.add_argument("-s", "--speed", type=float, default=0.18)
+    p.add_argument("-x", action="store_true")
+    p.add_argument("--slow", action="store_true")
 
-    color = "white"
+    # modos
+    p.add_argument("--rainbow", action="store_true")
+    p.add_argument("--matrix", action="store_true")
+    p.add_argument("--glitch", action="store_true")
+    p.add_argument("--blood", action="store_true")
+    p.add_argument("--fire", action="store_true")
+    p.add_argument("--ice", action="store_true")
+    p.add_argument("--ghost", action="store_true")
+    p.add_argument("--neon", action="store_true")
+    p.add_argument("--random", action="store_true")
 
-    if args.green:
-        color = "green"
-    elif args.red:
-        color = "red"
-    elif args.blue:
-        color = "blue"
+    # loops
+    p.add_argument("--once", action="store_true")
+    p.add_argument("--loop", type=int, default=999999999)
+    p.add_argument("--infinite", action="store_true")
 
-    if args.random:
-        color = random.choice(["red", "green", "blue", "cyan", "yellow"])
+    # extras
+    p.add_argument("--beep", action="store_true")
 
-    animate(args.speed, color)
+    p.add_argument(
+        "--version",
+        action="version",
+        version="skull 1.0"
+    )
+
+    return p.parse_args()
+
+# -------------------------------------
+# MAIN
+# -------------------------------------
+def main():
+    args = parser()
+
+    if not frames:
+        print("No hay frames cargados.")
+        sys.exit()
+
+    animate(args)
 
 if __name__ == "__main__":
     main()
