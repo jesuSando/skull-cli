@@ -2,11 +2,12 @@
 import time
 import threading
 import os
+import argparse
+import random
 
 stop = False
 
-def animate():
-  frames =[
+frames =[
   """
               _.,,,._
          .,uS$$$$$$$SSI;,_
@@ -147,22 +148,67 @@ def animate():
 
 
 
-  ]
+]
 
-  threading.Thread(target=stop_animation, daemon=True).start()
-  while not stop:
-      for frame in frames:
-          if stop:
-            os.system('clear')
-            break
-          print("\033[H\033[J", end="")
-          print(frame)
-          time.sleep(0.18)
+colors = {
+  "red": "\033[31m",
+  "green": "\033[32m",
+  "blue": "\033[34m",
+  "cyan": "\033[36m",
+  "yellow": "\033[33m",
+  "white": "\033[37m",
+  "reset": "\033[0m"
+}
+
+def clear_screen():
+  print("\033[H\033[J", end="")
+
+def animate(speed, color):
+    global stop
+
+    threading.Thread(target=stop_animation, daemon=True).start()
+
+    while not stop:
+        for frame in frames:
+            if stop:
+                clear_screen()
+                return
+
+            clear_screen()
+            print(colors[color] + frame + colors["reset"])
+            time.sleep(speed)
   
-
 def stop_animation():
     global stop
     input()
     stop = True
     
-animate()
+def main():
+    parser = argparse.ArgumentParser(
+        description="Animated ASCII Skull"
+    )
+
+    parser.add_argument("-g", "--green", action="store_true")
+    parser.add_argument("-r", "--red", action="store_true")
+    parser.add_argument("-b", "--blue", action="store_true")
+    parser.add_argument("-s", "--speed", type=float, default=0.18)
+    parser.add_argument("--random", action="store_true")
+
+    args = parser.parse_args()
+
+    color = "white"
+
+    if args.green:
+        color = "green"
+    elif args.red:
+        color = "red"
+    elif args.blue:
+        color = "blue"
+
+    if args.random:
+        color = random.choice(["red", "green", "blue", "cyan", "yellow"])
+
+    animate(args.speed, color)
+
+if __name__ == "__main__":
+    main()
