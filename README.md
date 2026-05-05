@@ -1,6 +1,12 @@
-# 💀 Skull CLI
+<h1 align="center">💀 Skull CLI</h1>
 
+<p align="center">
+  <img src="./assets/skull.gif" width="700">
+</p>
+
+<p align="center">
 Animated rotating ASCII skull for Linux terminals.
+</p>
 
 A retro terminal toy made in Python with colors, glitch effects, matrix mode, rainbow mode, speed controls and more.
 
